@@ -1,8 +1,8 @@
 # Smart Memory Hygiene Framework
 
-> **Version:** 0.1.0-alpha  
-> **Author:** Đệ (AI Assistant)  
-> **Location:** `/mnt/toshiba/projects/smart-memory-hygiene/`
+> **Version:** 1.0.0  
+> **Author:** Đệ (AI Assistant) for Sếp Huy  
+> **GitHub:** https://github.com/huydaobk/smart-memory-hygiene
 
 AI-powered memory management for OpenClaw agents. Automatically optimizes MEMORY.md and other memory files using semantic analysis, importance scoring, and predictive cleanup.
 
@@ -104,41 +104,181 @@ smart-memory-hygiene/
 
 ### Installation
 
+#### Method 1: Clone from GitHub
 ```bash
-# Clone/navigate to repo
-cd /mnt/toshiba/projects/smart-memory-hygiene
+# Clone repo
+git clone https://github.com/YOUR_USERNAME/smart-memory-hygiene.git
+cd smart-memory-hygiene
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Run tests
-python -m pytest tests/
-
-# Dry run (safe, no changes)
-python -m src.parser.memory_md --dry-run ~/.openclaw/workspace/MEMORY.md
 ```
 
-### Usage
+#### Method 2: Direct Download
+```bash
+# Download and extract
+curl -L https://github.com/YOUR_USERNAME/smart-memory-hygiene/archive/main.tar.gz | tar xz
+cd smart-memory-hygiene-main
 
+# Install dependencies
+pip install -r requirements.txt
+```
+
+#### Method 3: For OpenClaw Users
+```bash
+# Navigate to your OpenClaw workspace
+cd ~/.openclaw/workspace
+
+# Clone into projects folder
+git clone https://github.com/YOUR_USERNAME/smart-memory-hygiene.git projects/smart-memory-hygiene
+cd projects/smart-memory-hygiene
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Verify Installation
+```bash
+# Run all tests
+python run_phase2_tests.py
+python run_phase3_tests.py
+
+# Or run individual test suites
+python run_tests.py          # Week 1: Parser
+python run_week2_tests.py    # Week 2: Scorer
+python run_week3_tests.py    # Week 3: Deduplicator
+python run_week4_tests.py    # Week 4: Archiver
+```
+
+### Usage Examples
+
+#### Example 1: Basic Memory Analysis
 ```python
-from src.parser import MemoryMDParser
-from src.scorer import ImportanceScorer
-from src.deduper import SemanticDeduplicator
+#!/usr/bin/env python3
+"""Basic analysis of MEMORY.md"""
+import sys
+sys.path.insert(0, '/path/to/smart-memory-hygiene')
 
-# Parse MEMORY.md
+from src.parser.memory_md import MemoryMDParser
+from src.scorer.composite import ImportanceScorer
+from src.dashboard.health import HealthDashboard
+
+# Parse your MEMORY.md
+parser = MemoryMDParser(dry_run=True)
+entries = parser.parse("~/.openclaw/workspace/MEMORY.md")
+
+print(f"Found {len(entries)} entries")
+
+# Score all entries
+scorer = ImportanceScorer()
+for entry in entries:
+    entry.importance = scorer.score(entry)
+
+# Sort by importance
+entries.sort(key=lambda e: e.importance, reverse=True)
+
+print("\nTop 5 most important:")
+for i, e in enumerate(entries[:5]):
+    print(f"{i+1}. [{e.type}] {e.importance:.3f} - {e.content[:50]}...")
+
+# Health check
+dashboard = HealthDashboard()
+metrics = dashboard.get_metrics(
+    total_entries=len(entries),
+    duplicate_entries=0,
+    archived_entries=0,
+    fragmented_sections=5,
+    total_sections=15
+)
+score = dashboard.get_health_score(metrics)
+print(f"\nHealth Score: {score:.3f}")
+```
+
+#### Example 2: Full Pipeline (Parse → Score → Deduplicate → Archive)
+```python
+#!/usr/bin/env python3
+"""Full memory hygiene pipeline"""
+import sys
+sys.path.insert(0, '/path/to/smart-memory-hygiene')
+
+from src.parser.memory_md import MemoryMDParser
+from src.scorer.composite import ImportanceScorer
+from src.deduper.semantic import SemanticDeduplicator
+from src.archiver.manager import ArchiveManager
+from src.prediction.engine import PredictionEngine
+
+MEMORY_FILE = "~/.openclaw/workspace/MEMORY.md"
+ARCHIVE_DIR = "~/.openclaw/workspace/memory/archive"
+
+# Step 1: Parse
+parser = MemoryMDParser(dry_run=True)
+entries = parser.parse(MEMORY_FILE)
+print(f"Parsed {len(entries)} entries")
+
+# Step 2: Score
+scorer = ImportanceScorer()
+for entry in entries:
+    entry.importance = scorer.score(entry)
+
+# Step 3: Deduplicate
+deduper = SemanticDeduplicator(similarity_threshold=0.8)
+entries = deduper.deduplicate(entries, importance_scorer=scorer)
+print(f"After dedup: {len(entries)} entries")
+
+# Step 4: Archive low-importance (dry-run by default)
+archiver = ArchiveManager(archive_dir=ARCHIVE_DIR, importance_threshold=0.3)
+archived = archiver.archive_entries([e for e in entries if hasattr(e, 'importance') and e.importance < 0.3])
+print(f"Archived {len(archived)} entries")
+
+# Step 5: Predict trends
+predictor = PredictionEngine()
+for i, entry in enumerate(entries[:10]):
+    entry_id = f"entry-{i}"
+    predictor.track_access(entry_id)
+
+trends = predictor.get_trends(top_n=5)
+print(f"Top trends: {len(trends)}")
+```
+
+#### Example 3: Semantic Search
+```python
+#!/usr/bin/env python3
+"""Search memory by semantic similarity"""
+import sys
+sys.path.insert(0, '/path/to/smart-memory-hygiene')
+
+from src.parser.memory_md import MemoryMDParser
+from src.intelligence.semantic_analyzer import SemanticAnalyzer
+
 parser = MemoryMDParser()
 entries = parser.parse("~/.openclaw/workspace/MEMORY.md")
 
-# Score importance
-scorer = ImportanceScorer()
-scored = scorer.score(entries)
+analyzer = SemanticAnalyzer(use_embeddings=False)  # Use text similarity
 
-# Deduplicate
-deduper = SemanticDeduplicator()
-optimized = deduper.deduplicate(scored)
+query = "How to sync files with Google Drive"
+results = analyzer.find_most_similar(query, entries, top_k=5)
 
-# Output
-parser.write(optimized, "~/.openclaw/workspace/MEMORY.md.optimized")
+print(f"Results for: '{query}'")
+for idx, score in results:
+    print(f"  [{idx}] {score:.3f}: {entries[idx].content[:60]}...")
+```
+
+#### Example 4: Command Line Usage
+```bash
+# Run full pipeline on your MEMORY.md
+cd /path/to/smart-memory-hygiene
+python scripts/full_pipeline.py ~/.openclaw/workspace/MEMORY.md
+
+# With actual archival (default is dry-run)
+python scripts/full_pipeline.py ~/.openclaw/workspace/MEMORY.md --apply
+
+# Run health check only
+python -c "
+import sys
+sys.path.insert(0, '.')
+from run_phase2_tests import *
+# ... health check code
+"
 ```
 
 ---
@@ -165,6 +305,71 @@ parser.write(optimized, "~/.openclaw/workspace/MEMORY.md.optimized")
 - [ ] Health dashboard
 
 ---
+
+## 📋 Requirements
+
+### System Requirements
+- **Python**: 3.8 or higher
+- **OS**: Linux, macOS, or Windows (WSL recommended)
+- **RAM**: 4GB minimum (8GB recommended for ML features)
+- **Disk**: 500MB free space
+
+### Python Dependencies
+```
+# Core (required)
+python-dateutil>=2.8.0
+pyyaml>=6.0
+
+# NLP & Semantic Analysis (optional but recommended)
+sentence-transformers>=2.2.0
+scikit-learn>=1.3.0
+numpy>=1.24.0
+
+# Testing
+pytest>=7.4.0
+
+# Logging
+structlog>=23.0.0
+```
+
+### Optional: GPU Support
+For faster embedding generation with sentence-transformers:
+```bash
+# Install PyTorch with CUDA support
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+## 🔧 Troubleshooting
+
+### Issue: `ModuleNotFoundError: No module named 'sentence_transformers'`
+**Solution**: Install optional dependencies
+```bash
+pip install sentence-transformers
+```
+Or run without embeddings (fallback mode):
+```python
+analyzer = SemanticAnalyzer(use_embeddings=False)
+```
+
+### Issue: `ImportError: numpy` not found
+**Solution**: Install numpy
+```bash
+pip install numpy
+```
+
+### Issue: Tests fail with `pytest` not found
+**Solution**: Install test dependencies
+```bash
+pip install pytest pytest-cov
+```
+
+### Issue: Memory file not found
+**Solution**: Check path and permissions
+```python
+from pathlib import Path
+memory_file = Path.home() / ".openclaw" / "workspace" / "MEMORY.md"
+assert memory_file.exists(), f"File not found: {memory_file}"
+```
 
 ## 🔒 Safety First
 
