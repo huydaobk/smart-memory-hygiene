@@ -47,6 +47,9 @@ class MemoryMDParser:
         'preference': r'^\s*-\s*\[preference\]\s*(.+)$',
         'instruction': r'^\s*-\s*\[instruction\]\s*(.+)$',
         'workflow_error': r'^\s*-\s*\[workflow\]\s*\[error\]\s*(.+)$',
+        'fact': r'^\s*-\s*\[fact\]\s*(.+)$',
+        'lesson': r'^\s*-\s*\[lesson\]\s*(.+)$',
+        'task': r'^\s*-\s*\[task\]\s*(.+)$',
     }
     
     # Date patterns
